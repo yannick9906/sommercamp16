@@ -27,8 +27,7 @@ const char lightSensor = "A3"
 const int tasterPin = 13;
 
 //Map
-static const uint8_t PROGMEM
-  mapArray[7] ={B10000001};
+static const uint8_t PROGMEM mapArray[7] ={B10000001};
 
 boolean buttonShortPressed(){
   //Gibt zurueck, ob der Knopf kurz gedrueckt wurde
@@ -60,6 +59,28 @@ boolean buttonLongPressed(){
   }
 }
 
+/* Returns an integer in the range [0, n).
+ *
+ * Uses rand(), and so is affected-by/affects the same seed.
+ */
+int randint(int n) {
+  if ((n - 1) == RAND_MAX) {
+    return rand();
+  } else {
+    // Chop off all of the values that would cause skew...
+    long end = RAND_MAX / n; // truncate skew
+    assert (end > 0L);
+    end *= n;
+
+    // ... and ignore results from rand() that fall above that limit.
+    // (Worst case the loop condition should succeed 50% of the time,
+    // so we can expect to bail out of this loop pretty quickly.)
+    int r;
+    while ((r = rand()) >= end);
+
+    return r % n;
+  }
+}
 
 int[] getSensorData(){
   /* Get a new sensor event */ 
@@ -90,17 +111,58 @@ int[] getSensorData(){
 }
 
 void displayText(char text){
-  //Zeigt einen Buchstaben auf dem Display  
+  //Zeigt einen Text auf dem Display  
+  matrix.setTextWrap(false);  // we dont want text to wrap so it scrolls nicely
+  matrix.setTextSize(1);
+  matrix.setTextColor(LED_GREEN);
+  for (int8_t x=7; x>=-36; x--) {
+    matrix.clear();
+    matrix.setCursor(x,0);
+    matrix.print(text);
+    matrix.writeDisplay();
+    delay(2000);
+}
+
+int generateNewMapLine(){
+  chance = randint(2);
+  int newLBorder, newRBorder;
+    switch(chance){
+      case 0:
+        newLBorder = leftBorderPosition--;
+        break;
+      case 1:
+        newLBorder = leftBorderPosition;
+        break;
+      case 2:
+        newLBorder = leftBorderPosition++;
+        break;
+    }
+    newRBorder = newLBorder + 4;
+    if(newLBorder < 0 || newRBorder > 7){
+      return generateNewMapLine()
+    }
+    static const uint8_t PROGMEM temp = {B00000000}
+    for ( i=0; i<8; i++ ){
+      if(i == newLBorder || i == newRBorder){
+        temp ^= (-x ^ temp) & (1 << n);
+      }
+  }
 }
 
 void preGenerateMap(){
   //generiert den Anfang der Map
+  static const uint8_t PROGMEM 
+  temp ={B10000001,
+  B10000001,
+  B10000001,
+  B10000001,
+  B10000001,
+  B10000001,
+  B10000001};
   for ( i=0; i<7; i++ ){
-    for ( i=0; i<3; i++ ){
-      printf("%d ", rand() % 6 + 1);
-    }
-      printf("%d ", rand() % 6 + 1);
+    temp[i] = generateNewMapLine()
   }
+  mapArray = temp
 }
 
 void updateMap(){
@@ -108,7 +170,10 @@ void updateMap(){
 }
 
 void displayMap(){
-  
+  matrix.clear();
+  matrix.drawBitmap(0, 0, mapArray, 8, 8, LED_GREEN);
+  matrix.writeDisplay();
+  delay(500);
 }
 
 void startUp(){
@@ -198,6 +263,10 @@ void loop() {
     case "GAME":
       //Gameschleife
       displayMap();
+      updateMap();
+      if(leftBorderPosition>=playerPosition>=rightBorderPosition){
+        currMode = MENU;
+      }
       break;
     case "CREDITS":
       //Abspielen der Credits
