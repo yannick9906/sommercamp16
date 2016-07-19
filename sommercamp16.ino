@@ -175,6 +175,17 @@ void displayText(String text) {
     matrix.setRotation(0);
 }
 
+void loading() {
+    matrix.clear();
+
+    //Todo Timesincelast +1
+
+    matrix.setRotation(3);
+    matrix.drawLine(0, 6, lineLength-1, 6, LED_GREEN);
+    matrix.writeDisplay();
+    matrix.setRotation(0);
+}
+
 int generateNewMapLine() {
     int chance = randint(2);
     int newLBorder, newRBorder;
@@ -195,6 +206,7 @@ int generateNewMapLine() {
     }
     static uint8_t temp = {B00000000};
     for (int i=0; i<8; i++ ){
+        if(currMode == START) loading();
         if(i == newLBorder || i == newRBorder){
             temp ^= 1 << i;
         }
