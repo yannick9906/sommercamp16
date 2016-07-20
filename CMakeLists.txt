@@ -4,6 +4,8 @@ set(PROJECT_NAME sommercamp16)
 project(${PROJECT_NAME})
 include_directories(/home/guest075/Arduino/libraries/Adafruit-GFX-Library-1.1.5/)
 include_directories(/home/guest075/Arduino/libraries/Adafruit_LED_Backpack-1.1.3/)
+include_directories(/home/guest075/Arduino/libraries/Adafruit_Sensor-master/)
+include_directories(/home/guest075/Arduino/libraries/Adafruit_HMC5883_Unified-master/)
 set(${CMAKE_PROJECT_NAME}_BOARD uno)
 set(${CMAKE_PROJECT_NAME}_PORT /dev/ttyACM0)
 

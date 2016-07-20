@@ -1,7 +1,9 @@
+#include <Adafruit_HMC5883_U.h>
+
+#include <Adafruit_Sensor.h>
+
 #include <Wire.h>
 #include <assert.h>
-//#include <Adafruit_Sensor.h>
-//#include <Adafruit_HMC5883_U.h>
 #include "Adafruit_LEDBackpack.h"
 #include "Adafruit_GFX.h"
 
@@ -9,7 +11,7 @@
 Adafruit_BicolorMatrix matrix = Adafruit_BicolorMatrix();
 
 /* Assign a unique ID to this sensor at the same time */
-//Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
+Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(80);
 
 static const uint8_t PROGMEM
         menu_0[] = {
@@ -70,6 +72,8 @@ int playerPosition = 4;
 int currMode = START;
 long buttonPressedTime = 0;
 bool buttonPressed = false;
+long lastStepTime = 0;
+int barLength = 1;
 
 const char lightSensor = A3;
 const int tasterPin = 13;
@@ -133,16 +137,13 @@ int randint(int n) {
 
 float getSensorData() {
   /* Get a new sensor event */ 
-  /*sensors_event_t event;
+  sensors_event_t event;
   mag.getEvent(&event);
   // Hold the module so that Z is pointing 'up' and you can measure the heading with x&y
   // Calculate heading when the magnetometer is level, then correct for signs of axis.
   float heading = atan2(event.magnetic.y, event.magnetic.x);
-  
-  // Once you have your heading, you must then add your 'Declination Angle', which is the 'Error' of the magnetic field in your location.
-  // Mine is: -13* 2' W, which is ~13 Degrees, or (which we need) 0.22 radians
-  // If you cannot find your Declination, comment out these two lines, your compass will be slightly off.
-  float declinationAngle = 0.22;
+
+  float declinationAngle = 0.0593412;
   heading += declinationAngle;
   
   // Correct for when signs are reversed.
@@ -155,8 +156,8 @@ float getSensorData() {
    
   // Convert radians to degrees for readability.
   float headingDegrees = heading * 180/M_PI; 
-  */
-  return 0;
+
+  return headingDegrees;
 }
 
 void displayText(String text) {
@@ -178,17 +179,24 @@ void displayText(String text) {
 void loading() {
     matrix.clear();
 
-    //Todo Timesincelast +1
-
+    /*Serial.print("Zeit: ");
+    Serial.print(millis() - lastStepTime);
+    Serial.print("Length: ");
+    Serial.println(barLength);*/
+    if((millis() - lastStepTime) >= 100) {
+        barLength = (barLength + 1) % 8;
+        lastStepTime = millis();
+    }
     matrix.setRotation(3);
-    matrix.drawLine(0, 6, lineLength-1, 6, LED_GREEN);
+    matrix.drawLine(0, 6, barLength, 6, LED_GREEN);
     matrix.writeDisplay();
     matrix.setRotation(0);
 }
 
 int generateNewMapLine() {
-    int chance = randint(2);
+    int chance = randint(3);
     int newLBorder, newRBorder;
+    Serial.print("Randint: "); Serial.println(chance);
     switch(chance){
         case 0:
             newLBorder = leftBorderPosition--;
@@ -200,17 +208,23 @@ int generateNewMapLine() {
             newLBorder = leftBorderPosition++;
             break;
     }
+    Serial.println("---> Endswitch");
     newRBorder = newLBorder + 4;
     if(newLBorder < 0 || newRBorder > 7){
+        Serial.println("---> Recursion!");
         return generateNewMapLine();
     }
     static uint8_t temp = {B00000000};
+    Serial.println("---> Startfor");
     for (int i=0; i<8; i++ ){
+        Serial.print("---> Forstep i=");
+        Serial.println(i);
         if(currMode == START) loading();
         if(i == newLBorder || i == newRBorder){
             temp ^= 1 << i;
         }
     }
+    return temp;
 }
 
 void preGenerateMap(){
@@ -260,6 +274,7 @@ void reset(){
     matrix.writeDisplay();
     delay(500);
 
+    barLength = 0;
     currMode = START;
     currModeSel = M_PLAY;
     leftBorderPosition = 0;
@@ -269,18 +284,24 @@ void reset(){
 }
 
 void displaySensorDetails(){
-  /*sensor_t sensor;
-  mag.getSensor(&sensor);
-  Serial.println("------------------------------------");
-  Serial.print  ("Sensor:       "); Serial.println(sensor.name);
-  Serial.print  ("Driver Ver:   "); Serial.println(sensor.version);
-  Serial.print  ("Unique ID:    "); Serial.println(sensor.sensor_id);
-  Serial.print  ("Max Value:    "); Serial.print(sensor.max_value); Serial.println(" uT");
-  Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println(" uT");
-  Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" uT");  
-  Serial.println("------------------------------------");
-  Serial.println("");
-  delay(500);*/
+    sensor_t sensor;
+    mag.getSensor(&sensor);
+    // Get a new sensor event
+    sensors_event_t event;
+    mag.getEvent(&event);
+    Serial.println("------------------------------------");
+    Serial.print  ("Sensor:       "); Serial.println(sensor.name);
+    Serial.print  ("Driver Ver:   "); Serial.println(sensor.version);
+    Serial.print  ("Unique ID:    "); Serial.println(sensor.sensor_id);
+    Serial.print  ("Max Value:    "); Serial.print(sensor.max_value); Serial.println(" uT");
+    Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println(" uT");
+    Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" uT");
+    Serial.print("X: "); Serial.print(event.magnetic.x); Serial.print("  ");
+    Serial.print("Y: "); Serial.print(event.magnetic.y); Serial.print("  ");
+    Serial.print("Z: "); Serial.print(event.magnetic.z); Serial.print("  ");Serial.println("uT");
+    Serial.println("------------------------------------");
+    Serial.println("");
+    delay(500);
 }
 
 void loopMenu() {
@@ -348,10 +369,10 @@ void setup() {
 
     Serial.println("Our awesome Racinggame"); Serial.println("");
     /* Initialise the sensor */
-    /*if(!mag.begin()){
-    //There was a problem detecting the HMC5883 ... check your connections
-    Serial.println("Ooops, no HMC5883 detected ... Check your wiring!");
-    while(1);
+    /*if(!mag.begin()) {
+        // There was a problem detecting the HMC5883 ... check your connections
+        Serial.println("Ooops, no HMC5883 detected ... Check your wiring!");
+        while(1);
     }*/
     //Displayinitialisierung
     matrix.begin(0x70);
@@ -370,6 +391,7 @@ void loop() {
             loopBreak();
             break;
     }
+    displaySensorDetails();
 }
 
 
