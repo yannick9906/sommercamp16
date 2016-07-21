@@ -1,7 +1,3 @@
-#include <Adafruit_HMC5883_U.h>
-
-#include <Adafruit_Sensor.h>
-
 #include <Wire.h>
 #include <assert.h>
 #include "Adafruit_LEDBackpack.h"
@@ -9,9 +5,6 @@
 
 //Display
 Adafruit_BicolorMatrix matrix = Adafruit_BicolorMatrix();
-
-/* Assign a unique ID to this sensor at the same time */
-Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(80);
 
 static const uint8_t PROGMEM
         menu_0[] = {
@@ -64,6 +57,7 @@ static uint8_t mapArray[7] ={B10000001};
 
 enum displayableModes {M_PLAY, M_CREDITS, M_RESTART};
 enum modes {MENU, GAME, CREDITS, BREAK, START};
+enum sides {LEFT, RIGHT};
 
 int currModeSel = M_PLAY;
 int leftBorderPosition = 0;
@@ -75,8 +69,45 @@ bool buttonPressed = false;
 long lastStepTime = 0;
 int barLength = 1;
 
-const char lightSensor = A3;
 const int tasterPin = 13;
+const int leftSonarTrig = 11, leftSonarEcho = 12;
+const int rightSonarTrig = 9, rightSonarEcho = 10;
+
+long microsecondsToCentimeters(long microseconds) {
+    // The speed of sound is 340 m/s or 29 microseconds per centimeter.
+    // The ping travels out and back, so to find the distance of the
+    // object we take half of the distance travelled.
+    return microseconds / 29 / 2;
+}
+
+long getSonarData(int side) {
+    int trig, echo;
+    if(side == LEFT) {
+        trig = leftSonarTrig;
+        echo = leftSonarEcho;
+    } else if(side == RIGHT) {
+        trig = rightSonarTrig;
+        echo = rightSonarEcho;
+    } else return -1;
+
+    pinMode(trig, OUTPUT);
+    digitalWrite(trig, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trig, HIGH);
+    delayMicroseconds(5);
+    digitalWrite(trig, LOW);
+
+    pinMode(echo,INPUT);
+    long duration = pulseIn(echo, HIGH);
+    long distance = microsecondsToCentimeters(duration);
+
+    /*Serial.print("Sonardata: "); Serial.println(side);
+    Serial.print("Duration:  "); Serial.println(duration);
+    Serial.print("Distance:  "); Serial.println(distance);
+    Serial.println("-------------------");
+    Serial.println();*/
+    return distance;
+}
 
 bool buttonShortPressed(){
     bool pressed = digitalRead(tasterPin) == LOW;
@@ -135,31 +166,6 @@ int randint(int n) {
   }
 }
 
-float getSensorData() {
-  /* Get a new sensor event */ 
-  sensors_event_t event;
-  mag.getEvent(&event);
-  // Hold the module so that Z is pointing 'up' and you can measure the heading with x&y
-  // Calculate heading when the magnetometer is level, then correct for signs of axis.
-  float heading = atan2(event.magnetic.y, event.magnetic.x);
-
-  float declinationAngle = 0.0593412;
-  heading += declinationAngle;
-  
-  // Correct for when signs are reversed.
-  if(heading < 0)
-    heading += 2*PI;
-    
-  // Check for wrap due to addition of declination.
-  if(heading > 2*PI)
-    heading -= 2*PI;
-   
-  // Convert radians to degrees for readability.
-  float headingDegrees = heading * 180/M_PI; 
-
-  return headingDegrees;
-}
-
 void displayText(String text) {
     //Zeigt einen Text auf dem Display
     matrix.setTextWrap(false);  // we dont want text to wrap so it scrolls nicely
@@ -210,9 +216,12 @@ int generateNewMapLine() {
     }
     Serial.println("---> Endswitch");
     newRBorder = newLBorder + 4;
-    if(newLBorder < 0 || newRBorder > 7){
-        Serial.println("---> Recursion!");
-        return generateNewMapLine();
+    if (newRBorder > 7) {
+        newLBorder--;
+        newRBorder--;
+    } else if (newLBorder < 0) {
+        newLBorder++;
+        newRBorder++;
     }
     static uint8_t temp = {B00000000};
     Serial.println("---> Startfor");
@@ -236,6 +245,23 @@ void preGenerateMap(){
     Serial.println("Endgen.");
 }
 
+void updateDistances(int left, int right){
+    matrix.setRotation(3);
+    int lineLengthLeft = (int) ((left/10.0)+.5);
+    int lineLengthRight = (int) ((right/10.0)+.5);
+    //Serial.println("updateSensor: ");
+    //Serial.print("Distance: "); Serial.print(left); Serial.print(" | "); Serial.println(right);
+    //Serial.print("Length:   "); Serial.print(lineLengthLeft); Serial.print(" | "); Serial.println(lineLengthRight);
+    matrix.drawLine(0,0,lineLengthLeft,0, LED_YELLOW);
+    matrix.drawLine(7-lineLengthRight,0,7,0, LED_YELLOW);
+    matrix.writeDisplay();
+    matrix.setRotation(0);
+}
+
+void updatePlayer() {
+
+}
+
 void updateMap(){
 
 }
@@ -252,16 +278,6 @@ void startUp() {
     displayText("Heyho!");
     preGenerateMap();
     currMode = MENU;
-}
-
-bool isLight(){
-  /*//Gibt zurueck ob Helligkeitssensor aktiv
-  int light = analogRead(lightSensor);
-  Serial.println(light);
-  if(light > 0){
-    return true;
-  }*/
-  return false;
 }
 
 void reset(){
@@ -281,27 +297,6 @@ void reset(){
     rightBorderPosition = 7;
     playerPosition = 4;
     startUp();
-}
-
-void displaySensorDetails(){
-    sensor_t sensor;
-    mag.getSensor(&sensor);
-    // Get a new sensor event
-    sensors_event_t event;
-    mag.getEvent(&event);
-    Serial.println("------------------------------------");
-    Serial.print  ("Sensor:       "); Serial.println(sensor.name);
-    Serial.print  ("Driver Ver:   "); Serial.println(sensor.version);
-    Serial.print  ("Unique ID:    "); Serial.println(sensor.sensor_id);
-    Serial.print  ("Max Value:    "); Serial.print(sensor.max_value); Serial.println(" uT");
-    Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println(" uT");
-    Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" uT");
-    Serial.print("X: "); Serial.print(event.magnetic.x); Serial.print("  ");
-    Serial.print("Y: "); Serial.print(event.magnetic.y); Serial.print("  ");
-    Serial.print("Z: "); Serial.print(event.magnetic.z); Serial.print("  ");Serial.println("uT");
-    Serial.println("------------------------------------");
-    Serial.println("");
-    delay(500);
 }
 
 void loopMenu() {
@@ -345,18 +340,25 @@ void loopMenu() {
 }
 
 void loopGame() {
-    updateMap();
-    displayMap();
-    if(isLight()) currMode = BREAK;
-    if(leftBorderPosition >= playerPosition >= rightBorderPosition)
-        currMode = MENU;
+    matrix.clear();
+    int leftDistance  = (int) getSonarData(LEFT);
+    int rightDistance = (int) getSonarData(RIGHT);
+    updateDistances(leftDistance, rightDistance);
+    //updatePlayer(leftDistance, rightDistance);
+    //updateMap();
+    //displayMap();
+    if(buttonShortPressed()) currMode = BREAK;
+    if(buttonLongPressed()) currMode = MENU;
+    //if(leftBorderPosition >= playerPosition >= rightBorderPosition)
+    //    currMode = MENU;
 }
 
 void loopBreak() {
+    if(buttonShortPressed()) currMode = GAME;
+    if(buttonLongPressed()) currMode = MENU;
     matrix.clear();
     matrix.drawBitmap(0, 0, menu_pause, 8, 8, LED_YELLOW);
     matrix.writeDisplay();
-    if(!isLight()) currMode = GAME;
 }
 
 
@@ -368,12 +370,6 @@ void setup() {
     digitalWrite(tasterPin, HIGH);
 
     Serial.println("Our awesome Racinggame"); Serial.println("");
-    /* Initialise the sensor */
-    /*if(!mag.begin()) {
-        // There was a problem detecting the HMC5883 ... check your connections
-        Serial.println("Ooops, no HMC5883 detected ... Check your wiring!");
-        while(1);
-    }*/
     //Displayinitialisierung
     matrix.begin(0x70);
     startUp();
@@ -391,7 +387,6 @@ void loop() {
             loopBreak();
             break;
     }
-    displaySensorDetails();
 }
 
 
