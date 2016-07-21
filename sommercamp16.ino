@@ -61,10 +61,13 @@ byte mapbuffer[7];
 enum displayableModes {M_PLAY, M_CREDITS, M_RESTART};
 enum modes {MENU, GAME, CREDITS, BREAK, START};
 enum sides {LEFT, RIGHT};
+enum move {TOLEFT, STAY, TORIGHT};
 
 int currModeSel = M_PLAY;
-int leftBorderPosition = 0;
-int rightBorderPosition = 7;
+int leftBorderPosition = 2;
+int rightBorderPosition = 6;
+int bottomLeftBorderPosition = 0;
+int bottomRightBorderPosition = 7;
 int playerPosition = 4;
 int currMode = START;
 long buttonPressedTime = 0;
@@ -72,6 +75,11 @@ bool buttonPressed = false;
 long lastStepTime = 0;
 long lastMapStepTime = 0;
 int barLength = 1;
+
+long timeGameStart = 0;
+
+long sonarLeftData = 0, sonarLeftCount = 0;
+long sonarRightData = 0, sonarRightCount = 0;
 
 const int tasterPin = 13;
 const int leftSonarTrig = 11, leftSonarEcho = 12;
@@ -111,6 +119,30 @@ long getSonarData(int side) {
     Serial.println("-------------------");
     Serial.println();*/
     return distance;
+}
+
+void doSensorData(int side) {
+    if(side == LEFT) {
+        sonarLeftCount++;
+        sonarLeftData += getSonarData(side);
+    } else if(side == RIGHT) {
+        sonarRightCount++;
+        sonarRightData += getSonarData(side);
+    }
+}
+
+int getSonarBetterData(int side) {
+    if(side == LEFT) {
+        int data = (int) (sonarLeftData / sonarLeftCount);
+        sonarLeftCount = 0;
+        sonarLeftData = 0;
+        return data;
+    } else if(side == RIGHT) {
+        int data = (int) (sonarRightData / sonarRightCount);
+        sonarRightCount = 0;
+        sonarRightData = 0;
+        return data;
+    }
 }
 
 bool buttonShortPressed(){
@@ -183,6 +215,7 @@ void displayText(String text, int pixelLength) {
         matrix.print(text);
         matrix.writeDisplay();
         delay(100);
+        if(buttonShortPressed()) break;
     }
     matrix.setRotation(0);
 }
@@ -204,8 +237,8 @@ void loading() {
     matrix.setRotation(0);
 }
 
-int generateNewMapLine() {
-    int chance = randint(3);
+byte generateNewMapLine() {
+    /*int chance = randint(3);
     int newLBorder, newRBorder;
     Serial.print("Randint: "); Serial.println(chance);
     switch(chance){
@@ -238,14 +271,43 @@ int generateNewMapLine() {
             temp ^= 1 << i;
         }
     }
-    return temp;
+    return temp;*/
+    int side = randint(3);
+    int leftBorder = leftBorderPosition;
+    int rightBorder = rightBorderPosition;
+    switch(side) {
+        case TOLEFT:
+            if(leftBorder-1 >= 0) {
+                leftBorder--;
+                rightBorder--;
+            }
+            break;
+        case STAY:
+            break;
+        case TORIGHT:
+            if(rightBorder+1 <= 7) {
+                leftBorder++;
+                rightBorder++;
+            }
+            break;
+    }
+    byte thisline = B00000000;
+    thisline |= 1 << leftBorder;
+    thisline |= 1 << rightBorder;
+
+    leftBorderPosition = leftBorder;
+    rightBorderPosition = rightBorder;
+    Serial.print("Mapgen: "); Serial.println(thisline, BIN);
+    return thisline;
 }
 
 void preGenerateMap(){
     //generiert den Anfang der Map
     Serial.println("Startgen");
-    for (int i=0; i<7; i++){
-        mapArray[i] = (uint8_t) generateNewMapLine();
+    for(int i=0;i<7;i++) {
+        loading();
+        mapbuffer[i] = B10000001;
+        delay(100);
     }
     Serial.println("Endgen.");
 }
@@ -264,29 +326,26 @@ void updateDistances(int left, int right){
     //Serial.print("Length:   "); Serial.print(lineLengthLeft); Serial.print(" | "); Serial.println(lineLengthRight);
     matrix.drawLine(-1,0,lineLengthLeft,0, LED_YELLOW);
     matrix.drawLine(7-lineLengthRight,0,7,0, LED_YELLOW);
-    matrix.writeDisplay();
     matrix.setRotation(0);
 }
 
-void updatePlayer(int left, int right) {
+void updatePlayer() {
     if((millis() - lastStepTime) >= 250) {
-        int lineLengthLeft = limitInt(4, (int) ((left/10.0)+.5));
-        int lineLengthRight = limitInt(4, (int) ((right/10.0)+.5));
+        int lineLengthLeft = limitInt(4, (int) ((getSonarBetterData(LEFT)/10.0)+.5));
+        int lineLengthRight = limitInt(4, (int) ((getSonarBetterData(RIGHT)/10.0)+.5));
         int heightDifference = lineLengthRight - lineLengthLeft;
-        Serial.print("Difference: ");
-        Serial.println(heightDifference);
+        //Serial.print("Difference: "); Serial.println(heightDifference);
 
         playerPosition = 4-heightDifference;
         lastStepTime = millis();
     }
     matrix.setRotation(3);
     matrix.drawPixel(playerPosition, 7, LED_RED);
-    matrix.writeDisplay();
     matrix.setRotation(0);
 }
 
 void updateMap(){
-    if((millis() - lastMapStepTime) >= 250) {
+    if((millis() - lastMapStepTime) >= 500) {
         //Shift map down
         byte temp[7];
         for (int i = 0; i < 6; i++) {
@@ -299,11 +358,25 @@ void updateMap(){
             mapbuffer[i] = temp[i];
         }
         lastMapStepTime = millis();
+
+        bool first = false;
+        for(int i=0;i<8;i++) {
+            if(CHECK_BIT(mapbuffer[0], i))
+                if(!first) {
+                    first = true;
+                    bottomLeftBorderPosition = i;
+                } else {
+                    bottomRightBorderPosition = i;
+                    return;
+                }
+        }
+        bottomLeftBorderPosition = 0;
+        bottomRightBorderPosition = 7;
     }
 }
 
 void displayMap(){
-    matrix.setRotation(3);
+    matrix.setRotation(1);
     /*for(int i=0; i<7; i++)
         for(int j=0; j<8; j++)
             if(CHECK_BIT(mapbuffer[i],j))
@@ -312,14 +385,13 @@ void displayMap(){
     for (int i = 0; i < 7; i++) {
         bitmap[i] = mapbuffer[i];
     }
-    matrix.drawBitmap(0,1,bitmap, 8,7,LED_GREEN);
-    matrix.writeDisplay();
+    matrix.drawBitmap(0,0,bitmap, 8,7,LED_GREEN);
     matrix.setRotation(0);
 }
 
 void startUp() {
     //Startet ein neues Spiel
-    //displayText("Heyho!", 36);
+    displayText("Heyho!", 36);
     preGenerateMap();
     currMode = MENU;
     for(int i=0; i<7; i++) {
@@ -340,8 +412,10 @@ void reset(){
     barLength = 0;
     currMode = START;
     currModeSel = M_PLAY;
-    leftBorderPosition = 0;
-    rightBorderPosition = 7;
+    leftBorderPosition = 2;
+    rightBorderPosition = 6;
+    bottomRightBorderPosition = 8;
+    bottomLeftBorderPosition = 0;
     playerPosition = 4;
     startUp();
 }
@@ -353,7 +427,9 @@ void loopMenu() {
     if(buttonLongPressed()) {
         switch(currModeSel) {
             case M_PLAY:
+                preGenerateMap();
                 currMode = GAME;
+                timeGameStart = millis();
                 break;
             case M_CREDITS:
                 currMode = CREDITS;
@@ -390,18 +466,42 @@ void loopMenu() {
     }
 }
 
+void doDeath() {
+    Serial.println("Death!");
+    matrix.drawRect(3,3,2,2, LED_RED);
+    matrix.writeDisplay();
+    delay(500);
+    matrix.drawRect(2,2,4,4, LED_RED);
+    matrix.writeDisplay();
+    delay(500);
+    matrix.drawRect(1,1,6,6, LED_RED);
+    matrix.writeDisplay();
+    delay(500);
+    matrix.drawRect(0,0,8,8, LED_RED);
+    matrix.writeDisplay();
+    delay(500);
+    int score = (int) ((millis() - timeGameStart) / 1000 * 5);
+    displayText("Score: ", 30);
+    displayText(String(score), 45);
+    currMode = MENU;
+}
+
 void loopGame() {
     matrix.clear();
+    doSensorData(LEFT);
+    doSensorData(RIGHT);
     int leftDistance  = (int) getSonarData(LEFT);
     int rightDistance = (int) getSonarData(RIGHT);
     updateDistances(leftDistance, rightDistance);
-    updatePlayer(leftDistance, rightDistance);
+    updatePlayer();
     updateMap();
     displayMap();
+    matrix.writeDisplay();
     if(buttonShortPressed()) currMode = BREAK;
     if(buttonLongPressed()) currMode = MENU;
-    //if(leftBorderPosition >= playerPosition >= rightBorderPosition)
-    //    currMode = MENU;
+    Serial.print("Pos: "); Serial.print(bottomLeftBorderPosition); Serial.print("|"); Serial.print(playerPosition); Serial.print("|");Serial.println(bottomRightBorderPosition);
+    if(bottomLeftBorderPosition >= playerPosition || playerPosition >= bottomRightBorderPosition)
+        doDeath();
 }
 
 void loopBreak() {
