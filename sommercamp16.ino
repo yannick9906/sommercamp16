@@ -492,9 +492,9 @@ void updateDistances(int left, int right) {
         int lineLengthRight = limitInt(4, (int) ((right / 10.0) + .5));
         //Serial.println("updateSensor: ");
         //Serial.print("Distance: "); Serial.print(left); Serial.print(" | "); Serial.println(right);
-        //Serial.print("Length:   "); Serial.print(lineLengthLeft); Serial.print(" | "); Serial.println(lineLengthRight);
+        Serial.print("Length:   "); Serial.print(lineLengthLeft); Serial.print(" | "); Serial.println(lineLengthRight);
         matrix.drawLine(-1, 0, lineLengthLeft, 0, LED_YELLOW);
-        matrix.drawLine(7 - lineLengthRight, 0, 7, 0, LED_YELLOW);
+        matrix.drawLine(8 - lineLengthRight, 0, 7, 0, LED_YELLOW);
         matrix.setRotation(0);
     }
 }
@@ -555,12 +555,21 @@ void displayMap() {
     for (int i = 0; i < 7; i++) {
         bitmap[i] = mapbuffer[i];
     }
-    int score = (int) ((millis() - timeGameStart) / 1000 * 5);
-    int highscore = 0;
-    EEPROM.get(0x10, highscore);
     int color = LED_GREEN;
-    if (score > highscore) {
-        color = LED_YELLOW;
+    if(gameTasterMode == 1) {
+        int score = (int) ((millis() - timeGameStart) / 1000 * 5);
+        int highscore = 0;
+        EEPROM.get(0x10, highscore);
+        if (score > highscore) {
+            color = LED_YELLOW;
+        }
+    } else {
+        int score = (int) ((millis() - timeGameStart) / 1000 * 20);
+        int highscore = 0;
+        EEPROM.get(0x10, highscore);
+        if (score > highscore) {
+            color = LED_YELLOW;
+        }
     }
     matrix.drawBitmap(0, 0, bitmap, 8, 7, color);
     matrix.setRotation(0);
@@ -616,12 +625,11 @@ void playMusicStep() {
     if ((millis() - lastStepPlayedTime) >= currentDelay) {
         int size = sizeof(starwars_notes) / sizeof(int);
         if (currentNote < size) {
-            //digitalWrite(buzzerPin, LOW);
             currentNote++;
             int noteDuration = 1000 / starwars_tempo[currentNote];
             currentDelay = 1000000 / starwars_notes[currentNote] / 2;
             //tone(buzzerPin, starwars_notes[currentNote], noteDuration);
-            buzz(buzzerPin, starwars_notes[currentNote], noteDuration);
+            if(starwars_notes[currentNote] != 0) buzz(buzzerPin, starwars_notes[currentNote], noteDuration);
             currentDelay = (long) (noteDuration * 1.30);
             lastStepPlayedTime = millis();
         } else {
@@ -681,13 +689,24 @@ void loopMenu() {
 
 void doDeath() {
     Serial.println("Death!");
-    int score = (int) ((millis() - timeGameStart) / 1000 * 5);
-    int highscore = 0;
-    EEPROM.get(0x10, highscore);
     int color = LED_RED;
-    if (score > highscore) {
-        EEPROM.put(0x10, score);
-        color = LED_YELLOW;
+    int score = 0;
+    if(gameTasterMode == 1) {
+        score = (int) ((millis() - timeGameStart) / 1000 * 5);
+        int highscore = 0;
+        EEPROM.get(0x10, highscore);
+        if (score > highscore) {
+            EEPROM.put(0x10, score);
+            color = LED_YELLOW;
+        }
+    } else {
+        score = (int) ((millis() - timeGameStart) / 1000 * 20);
+        int highscore = 0;
+        EEPROM.get(0x10, highscore);
+        if (score > highscore) {
+            EEPROM.put(0x10, score);
+            color = LED_YELLOW;
+        }
     }
     matrix.drawRect(3, 3, 2, 2, color);
     matrix.writeDisplay();
@@ -761,6 +780,9 @@ void setup() {
     matrix.begin(0x70);
     startUp();
     EEPROM.get(0x20, gameTasterMode);
+    int highscore = 0;
+    EEPROM.get(0x10, highscore);
+    Serial.print("Highscore: "); Serial.println(highscore);
 }
 
 void loop() {
