@@ -1,11 +1,10 @@
-
 #include <Wire.h>
 #include <EEPROM.h>
 #include <assert.h>
 #include "Adafruit_LEDBackpack.h"
 #include "Adafruit_GFX.h"
 
-#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
+#define CHECK_BIT(var, pos) ((var) & (1<<(pos)))
 
 //Pins
 #define goLeftPin 7
@@ -72,50 +71,50 @@ Adafruit_BicolorMatrix matrix = Adafruit_BicolorMatrix();
 
 static const uint8_t PROGMEM
         menu_0[] = {
-            B00011000,
-            B00000000,
-            B00000000,
-            B00000000,
-            B00000000,
-            B00000000,
-            B00000000,
-            B00011000 },
+        B00011000,
+        B00000000,
+        B00000000,
+        B00000000,
+        B00000000,
+        B00000000,
+        B00000000,
+        B00011000},
         menu_1[] = {
-            B00000000,
-            B00000000,
-            B00011000,
-            B00111100,
-            B00111100,
-            B01111110,
-            B00000000,
-            B00000000 },
+        B00000000,
+        B00000000,
+        B00011000,
+        B00111100,
+        B00111100,
+        B01111110,
+        B00000000,
+        B00000000},
         menu_2[] = {
-            B00000000,
-            B00000000,
-            B01010101,
-            B01010101,
-            B01010101,
-            B01010101,
-            B00000000,
-            B00000000 },
+        B00000000,
+        B00000000,
+        B01010101,
+        B01010101,
+        B01010101,
+        B01010101,
+        B00000000,
+        B00000000},
         menu_3[] = {
-            B00000000,
-            B00011110,
-            B00000010,
-            B01000010,
-            B11100010,
-            B01000010,
-            B01111110,
-            B00000000 },
+        B00000000,
+        B00011110,
+        B00000010,
+        B01000010,
+        B11100010,
+        B01000010,
+        B01111110,
+        B00000000},
         menu_pause[] = {
-            B00000000,
-            B01111110,
-            B01111110,
-            B00000000,
-            B00000000,
-            B01111110,
-            B01111110,
-            B00000000 };
+        B00000000,
+        B01111110,
+        B01111110,
+        B00000000,
+        B00000000,
+        B01111110,
+        B01111110,
+        B00000000};
 
 //Own Song - ImperialMarch
 int starwars_notes[] = {
@@ -147,7 +146,7 @@ int starwars_notes[] = {
         NOTE_A5, NOTE_A4, NOTE_A4, NOTE_A5, NOTE_GS5, NOTE_GS5,
         NOTE_FS5, NOTE_F5, NOTE_FS5, 0, NOTE_AS4, NOTE_DS4, NOTE_D5, NOTE_CS5,
         //
-        NOTE_C5, NOTE_B4, NOTE_C5, 0, NOTE_F5,NOTE_GS4, NOTE_F4, NOTE_A4,
+        NOTE_C5, NOTE_B4, NOTE_C5, 0, NOTE_F5, NOTE_GS4, NOTE_F4, NOTE_A4,
         NOTE_C5, NOTE_A4, NOTE_C5, NOTE_E5,
         NOTE_A5, NOTE_A4, NOTE_A4, NOTE_A5, NOTE_GS5, NOTE_G5,
         NOTE_FS5, NOTE_F5, NOTE_F5, 0, NOTE_AS4, NOTE_DS5, NOTE_D5, NOTE_CS5,
@@ -167,7 +166,7 @@ int starwars_notes[] = {
         ////
         NOTE_E7, NOTE_E7, 0, NOTE_E7,
         0, NOTE_C7, NOTE_E7, 0,
-        NOTE_G7, 0, 0,  0,
+        NOTE_G7, 0, 0, 0,
         NOTE_G6, 0, 0, 0,
 
         NOTE_C7, 0, 0, NOTE_G6,
@@ -220,12 +219,12 @@ int starwars_tempo[] = {
         4, 6, 16, 4, 6, 16,
         16, 16, 8, 8, 8, 4, 6, 16,
         //
-        16,16,8,8,8,4,6,16,
-        4,6,16,2,
-        4,6,16,4,6,16,
-        16,16,8,8,8,4,6,16,
-        16,16,8,8,8,4,6,16,
-        4,6,16,2,
+        16, 16, 8, 8, 8, 4, 6, 16,
+        4, 6, 16, 2,
+        4, 6, 16, 4, 6, 16,
+        16, 16, 8, 8, 8, 4, 6, 16,
+        16, 16, 8, 8, 8, 4, 6, 16,
+        4, 6, 16, 2,
         //
         4, 4, 4, 6, 16,
         4, 6, 16, 2,
@@ -234,8 +233,8 @@ int starwars_tempo[] = {
         4, 6, 16, 4, 6, 16,
         16, 16, 8, 8, 8, 4, 6, 16,
         //
-        16,16,8,8,8,4,6,16,
-        4,6,16,2,
+        16, 16, 8, 8, 8, 4, 6, 16,
+        4, 6, 16, 2,
         ////
         ////
         12, 12, 12, 12,
@@ -264,13 +263,21 @@ int starwars_tempo[] = {
         12, 12, 12, 12,
 };
 
-static uint8_t mapArray[7] ={B10000001};
+static uint8_t mapArray[7] = {B10000001};
 byte mapbuffer[7];
 
-enum displayableModes {M_PLAY, M_CREDITS, M_RESTART};
-enum modes {MENU, GAME, CREDITS, BREAK, START};
-enum sides {LEFT, RIGHT};
-enum move {TOLEFT, STAY, TORIGHT};
+enum displayableModes {
+    M_PLAY, M_CREDITS, M_RESTART
+};
+enum modes {
+    MENU, GAME, CREDITS, BREAK, START
+};
+enum sides {
+    LEFT, RIGHT
+};
+enum move {
+    TOLEFT, STAY, TORIGHT
+};
 
 int currModeSel = M_PLAY;
 int leftBorderPosition = 2;
@@ -279,8 +286,9 @@ int bottomLeftBorderPosition = 0;
 int bottomRightBorderPosition = 7;
 int playerPosition = 4;
 int currMode = START;
-long buttonPressedTime[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-bool buttonPressed[] = {false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+long buttonPressedTime[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+bool buttonPressed[] = {false, false, false, false, false, false, false, false, false, false, false, false, false,
+                        false};
 long lastStepTime = 0;
 long lastMapStepTime = 0;
 int barLength = 1;
@@ -296,18 +304,15 @@ long sonarLeftData = 0, sonarLeftCount = 0;
 long sonarRightData = 0, sonarRightCount = 0;
 
 long microsecondsToCentimeters(long microseconds) {
-    // The speed of sound is 340 m/s or 29 microseconds per centimeter.
-    // The ping travels out and back, so to find the distance of the
-    // object we take half of the distance travelled.
     return microseconds / 29 / 2;
 }
 
 long getSonarData(int side) {
     int trig, echo;
-    if(side == LEFT) {
+    if (side == LEFT) {
         trig = leftSonarTrig;
         echo = leftSonarEcho;
-    } else if(side == RIGHT) {
+    } else if (side == RIGHT) {
         trig = rightSonarTrig;
         echo = rightSonarEcho;
     } else return -1;
@@ -319,7 +324,7 @@ long getSonarData(int side) {
     delayMicroseconds(5);
     digitalWrite(trig, LOW);
 
-    pinMode(echo,INPUT);
+    pinMode(echo, INPUT);
     long duration = pulseIn(echo, HIGH);
     long distance = microsecondsToCentimeters(duration);
 
@@ -327,22 +332,22 @@ long getSonarData(int side) {
 }
 
 void doSensorData(int side) {
-    if(side == LEFT) {
+    if (side == LEFT) {
         sonarLeftCount++;
         sonarLeftData += getSonarData(side);
-    } else if(side == RIGHT) {
+    } else if (side == RIGHT) {
         sonarRightCount++;
         sonarRightData += getSonarData(side);
     }
 }
 
 int getSonarBetterData(int side) {
-    if(side == LEFT) {
+    if (side == LEFT) {
         int data = (int) (sonarLeftData / sonarLeftCount);
         sonarLeftCount = 0;
         sonarLeftData = 0;
         return data;
-    } else if(side == RIGHT) {
+    } else if (side == RIGHT) {
         int data = (int) (sonarRightData / sonarRightCount);
         sonarRightCount = 0;
         sonarRightData = 0;
@@ -350,16 +355,16 @@ int getSonarBetterData(int side) {
     }
 }
 
-bool buttonShortPressed(int taster){
+bool buttonShortPressed(int taster) {
     bool pressed = digitalRead(taster) == LOW;
 
-    if(pressed && !buttonPressed[taster]) {
+    if (pressed && !buttonPressed[taster]) {
         buttonPressed[taster] = true;
         buttonPressedTime[taster] = millis();
         return false;
-    } else if(!pressed && buttonPressed[taster]) {
+    } else if (!pressed && buttonPressed[taster]) {
         Serial.println((millis() - buttonPressedTime[taster]));
-        if((millis() - buttonPressedTime[taster]) <= 500)  {
+        if ((millis() - buttonPressedTime[taster]) <= 500) {
             buttonPressed[taster] = false;
             return true;
         } else return false;
@@ -367,16 +372,16 @@ bool buttonShortPressed(int taster){
     return false;
 }
 
-bool buttonLongPressed(int taster){
+bool buttonLongPressed(int taster) {
     bool pressed = digitalRead(taster) == LOW;
 
-    if(pressed && !buttonPressed[taster]) {
+    if (pressed && !buttonPressed[taster]) {
         buttonPressed[taster] = true;
         buttonPressedTime[taster] = millis();
         return false;
-    } else if(!pressed && buttonPressed[taster]) {
+    } else if (!pressed && buttonPressed[taster]) {
         Serial.println((millis() - buttonPressedTime[taster]));
-        if((millis() - buttonPressedTime[taster]) > 500)  {
+        if ((millis() - buttonPressedTime[taster]) > 500) {
             buttonPressed[taster] = false;
             return true;
         } else return false;
@@ -385,22 +390,17 @@ bool buttonLongPressed(int taster){
 }
 
 int randint(int n) {
-  if ((n - 1) == RAND_MAX) {
-    return rand();
-  } else {
-    // Chop off all of the values that would cause skew...
-    long end = RAND_MAX / n; // truncate skew
-    assert (end > 0L);
-    end *= n;
+    if ((n - 1) == RAND_MAX) {
+        return rand();
+    } else {
+        long end = RAND_MAX / n; // truncate skew
+        assert (end > 0L);
+        end *= n;
+        int r;
+        while ((r = rand()) >= end);
 
-    // ... and ignore results from rand() that fall above that limit.
-    // (Worst case the loop condition should succeed 50% of the time,
-    // so we can expect to bail out of this loop pretty quickly.)
-    int r;
-    while ((r = rand()) >= end);
-
-    return r % n;
-  }
+        return r % n;
+    }
 }
 
 void displayText(String text, int pixelLength) {
@@ -416,7 +416,7 @@ void displayText(String text, int pixelLength) {
         matrix.print(text);
         matrix.writeDisplay();
         delay(100);
-        if(buttonShortPressed(tasterPin)) break;
+        if (buttonShortPressed(tasterPin)) break;
     }
     matrix.setRotation(0);
 }
@@ -424,7 +424,7 @@ void displayText(String text, int pixelLength) {
 void loading() {
     matrix.clear();
 
-    if((millis() - lastStepTime) >= 100) {
+    if ((millis() - lastStepTime) >= 100) {
         barLength = (barLength + 1) % 8;
         lastStepTime = millis();
     }
@@ -438,9 +438,9 @@ byte generateNewMapLine() {
     int side = randint(3);
     int leftBorder = leftBorderPosition;
     int rightBorder = rightBorderPosition;
-    switch(side) {
+    switch (side) {
         case TOLEFT:
-            if(leftBorder-1 >= 0) {
+            if (leftBorder - 1 >= 0) {
                 leftBorder--;
                 rightBorder--;
             }
@@ -448,7 +448,7 @@ byte generateNewMapLine() {
         case STAY:
             break;
         case TORIGHT:
-            if(rightBorder+1 <= 7) {
+            if (rightBorder + 1 <= 7) {
                 leftBorder++;
                 rightBorder++;
             }
@@ -460,14 +460,15 @@ byte generateNewMapLine() {
 
     leftBorderPosition = leftBorder;
     rightBorderPosition = rightBorder;
-    Serial.print("Mapgen: "); Serial.println(thisline, BIN);
+    Serial.print("Mapgen: ");
+    Serial.println(thisline, BIN);
     return thisline;
 }
 
-void preGenerateMap(){
+void preGenerateMap() {
     //generiert den Anfang der Map
     Serial.println("Startgen");
-    for(int i=0;i<7;i++) {
+    for (int i = 0; i < 7; i++) {
         loading();
         mapbuffer[i] = B10000001;
         delay(100);
@@ -476,14 +477,14 @@ void preGenerateMap(){
 }
 
 int limitInt(int limit, int value) {
-    if(value >= limit) return limit;
+    if (value >= limit) return limit;
     else return value;
 }
 
-void updateDistances(int left, int right){
-    if(gameTasterMode == 1) {
+void updateDistances(int left, int right) {
+    if (gameTasterMode == 1) {
         matrix.setRotation(3);
-        matrix.drawLine(0,0,8,0, LED_RED);
+        matrix.drawLine(0, 0, 8, 0, LED_RED);
         matrix.setRotation(0);
     } else {
         matrix.setRotation(3);
@@ -499,16 +500,16 @@ void updateDistances(int left, int right){
 }
 
 void updatePlayer() {
-    if(gameTasterMode == 1) {
-        if(buttonShortPressed(goLeftPin) && playerPosition-1 >= 0) playerPosition--;
-        if(buttonShortPressed(goRightPin) && playerPosition+1 <= 7) playerPosition++;
-    } else if((millis() - lastStepTime) >= 250) {
-        int lineLengthLeft = limitInt(4, (int) ((getSonarBetterData(LEFT)/10.0)+.5));
-        int lineLengthRight = limitInt(4, (int) ((getSonarBetterData(RIGHT)/10.0)+.5));
+    if (gameTasterMode == 1) {
+        if (buttonShortPressed(goLeftPin) && playerPosition - 1 >= 0) playerPosition--;
+        if (buttonShortPressed(goRightPin) && playerPosition + 1 <= 7) playerPosition++;
+    } else if ((millis() - lastStepTime) >= 250) {
+        int lineLengthLeft = limitInt(4, (int) ((getSonarBetterData(LEFT) / 10.0) + .5));
+        int lineLengthRight = limitInt(4, (int) ((getSonarBetterData(RIGHT) / 10.0) + .5));
         int heightDifference = lineLengthRight - lineLengthLeft;
         //Serial.print("Difference: "); Serial.println(heightDifference);
 
-        playerPosition = 4-heightDifference;
+        playerPosition = 4 - heightDifference;
         lastStepTime = millis();
     }
     matrix.setRotation(3);
@@ -516,10 +517,10 @@ void updatePlayer() {
     matrix.setRotation(0);
 }
 
-void updateMap(){
+void updateMap() {
     int time = 500;
-    if(gameTasterMode == 1) time = 100;
-    if((millis() - lastMapStepTime) >= time) {
+    if (gameTasterMode == 1) time = 100;
+    if ((millis() - lastMapStepTime) >= time) {
         //Shift map down
         byte temp[7];
         for (int i = 0; i < 6; i++) {
@@ -534,22 +535,21 @@ void updateMap(){
         lastMapStepTime = millis();
 
         bool first = false;
-        for(int i=0;i<8;i++) {
-            if(CHECK_BIT(mapbuffer[0], i))
-                if(!first) {
-                    first = true;
-                    bottomLeftBorderPosition = i;
-                } else {
-                    bottomRightBorderPosition = i;
-                    return;
-                }
+        for (int i = 0; i < 8; i++) {
+            if (CHECK_BIT(mapbuffer[0], i)) if (!first) {
+                first = true;
+                bottomLeftBorderPosition = i;
+            } else {
+                bottomRightBorderPosition = i;
+                return;
+            }
         }
         bottomLeftBorderPosition = 0;
         bottomRightBorderPosition = 7;
     }
 }
 
-void displayMap(){
+void displayMap() {
     matrix.setRotation(1);
     uint8_t PROGMEM bitmap[7];
     for (int i = 0; i < 7; i++) {
@@ -559,10 +559,10 @@ void displayMap(){
     int highscore = 0;
     EEPROM.get(0x10, highscore);
     int color = LED_GREEN;
-    if(score > highscore) {
+    if (score > highscore) {
         color = LED_YELLOW;
     }
-    matrix.drawBitmap(0,0,bitmap, 8,7,color);
+    matrix.drawBitmap(0, 0, bitmap, 8, 7, color);
     matrix.setRotation(0);
 }
 
@@ -571,18 +571,18 @@ void startUp() {
     displayText("Heyho!", 36);
     preGenerateMap();
     currMode = MENU;
-    for(int i=0; i<7; i++) {
+    for (int i = 0; i < 7; i++) {
         mapbuffer[i] = mapArray[i];
     }
 }
 
-void reset(){
+void reset() {
     //Resettet alle Variablen auf die Startwerte
     matrix.clear();
-    matrix.drawRect(0,0,8,8, LED_RED);
-    matrix.drawRect(1,1,6,6, LED_RED);
-    matrix.drawRect(2,2,4,4, LED_RED);
-    matrix.drawRect(3,3,2,2, LED_RED);
+    matrix.drawRect(0, 0, 8, 8, LED_RED);
+    matrix.drawRect(1, 1, 6, 6, LED_RED);
+    matrix.drawRect(2, 2, 4, 4, LED_RED);
+    matrix.drawRect(3, 3, 2, 2, LED_RED);
     matrix.writeDisplay();
     delay(500);
 
@@ -633,11 +633,11 @@ void playMusicStep() {
 }
 
 void loopMenu() {
-    if(buttonShortPressed(tasterPin)) {
-        currModeSel = (currModeSel+1) % 3;
+    if (buttonShortPressed(tasterPin)) {
+        currModeSel = (currModeSel + 1) % 3;
     }
-    if(buttonLongPressed(tasterPin)) {
-        switch(currModeSel) {
+    if (buttonLongPressed(tasterPin)) {
+        switch (currModeSel) {
             case M_PLAY:
                 preGenerateMap();
                 currMode = GAME;
@@ -656,7 +656,7 @@ void loopMenu() {
         }
     }
 
-    switch(currModeSel) {
+    switch (currModeSel) {
         case M_PLAY:
             matrix.clear();
             matrix.drawBitmap(0, 0, menu_0, 8, 8, LED_GREEN);
@@ -685,20 +685,20 @@ void doDeath() {
     int highscore = 0;
     EEPROM.get(0x10, highscore);
     int color = LED_RED;
-    if(score > highscore) {
+    if (score > highscore) {
         EEPROM.put(0x10, score);
         color = LED_YELLOW;
     }
-    matrix.drawRect(3,3,2,2, color);
+    matrix.drawRect(3, 3, 2, 2, color);
     matrix.writeDisplay();
     delay(500);
-    matrix.drawRect(2,2,4,4, color);
+    matrix.drawRect(2, 2, 4, 4, color);
     matrix.writeDisplay();
     delay(500);
-    matrix.drawRect(1,1,6,6, color);
+    matrix.drawRect(1, 1, 6, 6, color);
     matrix.writeDisplay();
     delay(500);
-    matrix.drawRect(0,0,8,8, color);
+    matrix.drawRect(0, 0, 8, 8, color);
     matrix.writeDisplay();
     delay(500);
     displayText("Score: ", 30);
@@ -710,24 +710,29 @@ void loopGame() {
     matrix.clear();
     doSensorData(LEFT);
     doSensorData(RIGHT);
-    int leftDistance  = (int) getSonarData(LEFT);
+    int leftDistance = (int) getSonarData(LEFT);
     int rightDistance = (int) getSonarData(RIGHT);
     updateDistances(leftDistance, rightDistance);
     updatePlayer();
     updateMap();
     displayMap();
     matrix.writeDisplay();
-    if(buttonShortPressed(tasterPin)) currMode = BREAK;
-    if(buttonLongPressed(tasterPin)) currMode = MENU;
-    Serial.print("Pos: "); Serial.print(bottomLeftBorderPosition); Serial.print("|"); Serial.print(playerPosition); Serial.print("|");Serial.println(bottomRightBorderPosition);
-    if(bottomLeftBorderPosition >= playerPosition || playerPosition >= bottomRightBorderPosition)
+    if (buttonShortPressed(tasterPin)) currMode = BREAK;
+    if (buttonLongPressed(tasterPin)) currMode = MENU;
+    Serial.print("Pos: ");
+    Serial.print(bottomLeftBorderPosition);
+    Serial.print("|");
+    Serial.print(playerPosition);
+    Serial.print("|");
+    Serial.println(bottomRightBorderPosition);
+    if (bottomLeftBorderPosition >= playerPosition || playerPosition >= bottomRightBorderPosition)
         doDeath();
 }
 
 void loopBreak() {
-    if(buttonShortPressed(tasterPin)) currMode = GAME;
-    if(buttonLongPressed(tasterPin)) {
-        if(gameTasterMode == 1) gameTasterMode = 0;
+    if (buttonShortPressed(tasterPin)) currMode = GAME;
+    if (buttonLongPressed(tasterPin)) {
+        if (gameTasterMode == 1) gameTasterMode = 0;
         else gameTasterMode = 1;
         gameTasterMode = !gameTasterMode;
         EEPROM.put(0x20, gameTasterMode);
@@ -750,7 +755,8 @@ void setup() {
     digitalWrite(goRightPin, HIGH);
     pinMode(buzzerPin, OUTPUT);//buzzer
 
-    Serial.println("Our awesome Racinggame"); Serial.println("");
+    Serial.println("Our awesome Racinggame");
+    Serial.println("");
     //Displayinitialisierung
     matrix.begin(0x70);
     startUp();
@@ -758,7 +764,7 @@ void setup() {
 }
 
 void loop() {
-    switch(currMode) {
+    switch (currMode) {
         case MENU:
             loopMenu();
             break;
@@ -769,5 +775,6 @@ void loop() {
             loopBreak();
             break;
     }
-    Serial.print("Mode: "); Serial.println(gameTasterMode);
+    Serial.print("Mode: ");
+    Serial.println(gameTasterMode);
 }
