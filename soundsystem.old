@@ -92,7 +92,7 @@
 #define NOTE_D8  4699
 #define NOTE_DS8 4978
  
-#define buzzerPin 11 
+#define buzzerPin 8
 //Mario main theme melody
 int melody[] = {
   NOTE_E7, NOTE_E7, 0, NOTE_E7,
@@ -260,11 +260,7 @@ void setup(void){
   pinMode(buzzerPin, OUTPUT);//buzzer
   sing(1);
 }
-void loop(){
-  //sing the tunes
-  //sing(1);
-}
- 
+
 void sing(int songnum) {
   switch(songnum){
     case 1:
