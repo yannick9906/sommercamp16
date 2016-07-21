@@ -1,3 +1,4 @@
+
 #include <Wire.h>
 #include <assert.h>
 #include "Adafruit_LEDBackpack.h"
@@ -5,6 +6,7 @@
 
 //Display
 Adafruit_BicolorMatrix matrix = Adafruit_BicolorMatrix();
+#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
 static const uint8_t PROGMEM
         menu_0[] = {
@@ -54,6 +56,7 @@ static const uint8_t PROGMEM
             B00000000 };
 
 static uint8_t mapArray[7] ={B10000001};
+byte mapbuffer[7];
 
 enum displayableModes {M_PLAY, M_CREDITS, M_RESTART};
 enum modes {MENU, GAME, CREDITS, BREAK, START};
@@ -67,6 +70,7 @@ int currMode = START;
 long buttonPressedTime = 0;
 bool buttonPressed = false;
 long lastStepTime = 0;
+long lastMapStepTime = 0;
 int barLength = 1;
 
 const int tasterPin = 13;
@@ -166,13 +170,14 @@ int randint(int n) {
   }
 }
 
-void displayText(String text) {
+void displayText(String text, int pixelLength) {
     //Zeigt einen Text auf dem Display
     matrix.setTextWrap(false);  // we dont want text to wrap so it scrolls nicely
     matrix.setTextSize(1);
     matrix.setTextColor(LED_GREEN);
     matrix.setRotation(3);
-    for (int8_t x = 7; x >= -36; x--) {
+    int length = pixelLength * -1;
+    for (int8_t x = 7; x >= length; x--) {
         matrix.clear();
         matrix.setCursor(x, 0);
         matrix.print(text);
@@ -245,39 +250,81 @@ void preGenerateMap(){
     Serial.println("Endgen.");
 }
 
+int limitInt(int limit, int value) {
+    if(value >= limit) return limit;
+    else return value;
+}
+
 void updateDistances(int left, int right){
     matrix.setRotation(3);
-    int lineLengthLeft = (int) ((left/10.0)+.5);
-    int lineLengthRight = (int) ((right/10.0)+.5);
+    int lineLengthLeft = limitInt(4, (int) ((left/10.0)+.5));
+    int lineLengthRight = limitInt(4, (int) ((right/10.0)+.5));
     //Serial.println("updateSensor: ");
     //Serial.print("Distance: "); Serial.print(left); Serial.print(" | "); Serial.println(right);
     //Serial.print("Length:   "); Serial.print(lineLengthLeft); Serial.print(" | "); Serial.println(lineLengthRight);
-    matrix.drawLine(0,0,lineLengthLeft,0, LED_YELLOW);
+    matrix.drawLine(-1,0,lineLengthLeft,0, LED_YELLOW);
     matrix.drawLine(7-lineLengthRight,0,7,0, LED_YELLOW);
     matrix.writeDisplay();
     matrix.setRotation(0);
 }
 
-void updatePlayer() {
+void updatePlayer(int left, int right) {
+    if((millis() - lastStepTime) >= 250) {
+        int lineLengthLeft = limitInt(4, (int) ((left/10.0)+.5));
+        int lineLengthRight = limitInt(4, (int) ((right/10.0)+.5));
+        int heightDifference = lineLengthRight - lineLengthLeft;
+        Serial.print("Difference: ");
+        Serial.println(heightDifference);
 
+        playerPosition = 4-heightDifference;
+        lastStepTime = millis();
+    }
+    matrix.setRotation(3);
+    matrix.drawPixel(playerPosition, 7, LED_RED);
+    matrix.writeDisplay();
+    matrix.setRotation(0);
 }
 
 void updateMap(){
+    if((millis() - lastMapStepTime) >= 250) {
+        //Shift map down
+        byte temp[7];
+        for (int i = 0; i < 6; i++) {
+            temp[i] = mapbuffer[i + 1];
+        }
+        temp[6] = (byte) generateNewMapLine();
 
+        //Write to map buffer
+        for (int i = 0; i < 7; i++) {
+            mapbuffer[i] = temp[i];
+        }
+        lastMapStepTime = millis();
+    }
 }
 
 void displayMap(){
-    matrix.clear();
-    matrix.drawBitmap(0, 0, mapArray, 8, 8, LED_GREEN);
+    matrix.setRotation(3);
+    /*for(int i=0; i<7; i++)
+        for(int j=0; j<8; j++)
+            if(CHECK_BIT(mapbuffer[i],j))
+                matrix.drawPixel(j,i,LED_GREEN);*/
+    uint8_t PROGMEM bitmap[7];
+    for (int i = 0; i < 7; i++) {
+        bitmap[i] = mapbuffer[i];
+    }
+    matrix.drawBitmap(0,1,bitmap, 8,7,LED_GREEN);
     matrix.writeDisplay();
-    delay(500);
+    matrix.setRotation(0);
 }
 
 void startUp() {
     //Startet ein neues Spiel
-    displayText("Heyho!");
+    //displayText("Heyho!", 36);
     preGenerateMap();
     currMode = MENU;
+    for(int i=0; i<7; i++) {
+        mapbuffer[i] = mapArray[i];
+    }
 }
 
 void reset(){
@@ -310,6 +357,10 @@ void loopMenu() {
                 break;
             case M_CREDITS:
                 currMode = CREDITS;
+                displayText("Copyright", 52);
+                displayText("Janik&Yannick", 75);
+                displayText("Sommercamp 2016", 96);
+                currMode = MENU;
                 break;
             case M_RESTART:
                 reset();
@@ -344,9 +395,9 @@ void loopGame() {
     int leftDistance  = (int) getSonarData(LEFT);
     int rightDistance = (int) getSonarData(RIGHT);
     updateDistances(leftDistance, rightDistance);
-    //updatePlayer(leftDistance, rightDistance);
-    //updateMap();
-    //displayMap();
+    updatePlayer(leftDistance, rightDistance);
+    updateMap();
+    displayMap();
     if(buttonShortPressed()) currMode = BREAK;
     if(buttonLongPressed()) currMode = MENU;
     //if(leftBorderPosition >= playerPosition >= rightBorderPosition)
