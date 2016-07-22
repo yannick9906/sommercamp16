@@ -286,8 +286,8 @@ int bottomLeftBorderPosition = 0;
 int bottomRightBorderPosition = 7;
 int playerPosition = 4;
 int currMode = START;
-long buttonPressedTime[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-bool buttonPressed[] = {false, false, false, false, false, false, false, false, false, false, false, false, false,
+long buttonPressedTime[14] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+bool buttonPressed[14] = {false, false, false, false, false, false, false, false, false, false, false, false, false,
                         false};
 long lastStepTime = 0;
 long lastMapStepTime = 0;
@@ -355,37 +355,50 @@ int getSonarBetterData(int side) {
     }
 }
 
-bool buttonShortPressed(int taster) {
+bool buttonShortPressed(int taster, bool onlythis = true) {
     bool pressed = digitalRead(taster) == LOW;
-
+    Serial.print(millis()); Serial.print(": Testfor Button "); Serial.print(taster); Serial.print(": "); Serial.print(pressed); Serial.print("; buttonPressed[]: "); Serial.print(buttonPressed[taster]); Serial.print("; buttonPressedTime[]: "); Serial.print(buttonPressedTime[taster]);
     if (pressed && !buttonPressed[taster]) {
         buttonPressed[taster] = true;
         buttonPressedTime[taster] = millis();
+        Serial.println("; Output: false");
         return false;
     } else if (!pressed && buttonPressed[taster]) {
-        Serial.println((millis() - buttonPressedTime[taster]));
+        //Serial.println((millis() - buttonPressedTime[taster]));
         if ((millis() - buttonPressedTime[taster]) <= 500) {
             buttonPressed[taster] = false;
+            Serial.println("; Output: true");
             return true;
-        } else return false;
+        } else {
+            if(onlythis) buttonPressed[taster] = false;
+            Serial.println("; Output: false");
+            return false;
+        }
     }
+    Serial.println("; Output: false");
     return false;
 }
 
 bool buttonLongPressed(int taster) {
     bool pressed = digitalRead(taster) == LOW;
-
+    Serial.print("Testfor Button "); Serial.print(taster); Serial.print(": "); Serial.print(pressed); Serial.print("; buttonPressed[]: "); Serial.print(buttonPressed[taster]); Serial.print("; buttonPressedTime[]: "); Serial.print(buttonPressedTime[taster]);
     if (pressed && !buttonPressed[taster]) {
         buttonPressed[taster] = true;
         buttonPressedTime[taster] = millis();
+        Serial.println("; Output: false");
         return false;
     } else if (!pressed && buttonPressed[taster]) {
         Serial.println((millis() - buttonPressedTime[taster]));
+        buttonPressed[taster] = false;
         if ((millis() - buttonPressedTime[taster]) > 500) {
-            buttonPressed[taster] = false;
+            Serial.println("; Output: true");
             return true;
-        } else return false;
+        } else {
+            Serial.println("; Output: false");
+            return false;
+        }
     }
+    Serial.println("; Output: false");
     return false;
 }
 
@@ -593,16 +606,31 @@ void reset() {
     matrix.drawRect(2, 2, 4, 4, LED_RED);
     matrix.drawRect(3, 3, 2, 2, LED_RED);
     matrix.writeDisplay();
+    EEPROM.put(0x10, 0);
     delay(500);
 
-    barLength = 0;
-    currMode = START;
-    currModeSel = M_PLAY;
-    leftBorderPosition = 2;
-    rightBorderPosition = 6;
-    bottomRightBorderPosition = 8;
-    bottomLeftBorderPosition = 0;
-    playerPosition = 4;
+    int currModeSel = M_PLAY;
+    int leftBorderPosition = 2;
+    int rightBorderPosition = 6;
+    int bottomLeftBorderPosition = 0;
+    int bottomRightBorderPosition = 7;
+    int playerPosition = 4;
+    int currMode = START;
+    long buttonPressedTime[14] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    bool buttonPressed[14] = {false, false, false, false, false, false, false, false, false, false, false, false, false,
+                            false};
+    long lastStepTime = 0;
+    long lastMapStepTime = 0;
+    int barLength = 1;
+
+    long lastStepPlayedTime = 0;
+    long currentDelay = 0;
+    long currentNote = 0;
+
+    long timeGameStart = 0;
+
+    long sonarLeftData = 0, sonarLeftCount = 0;
+    long sonarRightData = 0, sonarRightCount = 0;
     startUp();
 }
 
@@ -641,7 +669,7 @@ void playMusicStep() {
 }
 
 void loopMenu() {
-    if (buttonShortPressed(tasterPin)) {
+    if (buttonShortPressed(tasterPin, false)) {
         currModeSel = (currModeSel + 1) % 3;
     }
     if (buttonLongPressed(tasterPin)) {
@@ -736,7 +764,7 @@ void loopGame() {
     updateMap();
     displayMap();
     matrix.writeDisplay();
-    if (buttonShortPressed(tasterPin)) currMode = BREAK;
+    if (buttonShortPressed(tasterPin, false)) currMode = BREAK;
     if (buttonLongPressed(tasterPin)) currMode = MENU;
     Serial.print("Pos: ");
     Serial.print(bottomLeftBorderPosition);
@@ -749,11 +777,10 @@ void loopGame() {
 }
 
 void loopBreak() {
-    if (buttonShortPressed(tasterPin)) currMode = GAME;
+    if (buttonShortPressed(tasterPin, false)) currMode = GAME;
     if (buttonLongPressed(tasterPin)) {
         if (gameTasterMode == 1) gameTasterMode = 0;
         else gameTasterMode = 1;
-        gameTasterMode = !gameTasterMode;
         EEPROM.put(0x20, gameTasterMode);
     }
     matrix.clear();
@@ -764,7 +791,7 @@ void loopBreak() {
 
 void setup() {
     //Init
-    Serial.begin(9600);
+    Serial.begin(230400);
     //Tasterinitialisierung
     pinMode(tasterPin, INPUT);
     pinMode(goLeftPin, INPUT);
